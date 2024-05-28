@@ -24,7 +24,7 @@ type QuestionConfig struct {
 	Result chan string
 	Callback func()
 	msgsent tgbotapi.Message
-	Update tgbotapi.Update
+	Update chan tgbotapi.Update
 	DoubleCheck bool
 	DoubleCheckQuestion string
 	DoubleCheckButtonYes string
@@ -66,7 +66,6 @@ func (tgq *TGQ) Update(update tgbotapi.Update) bool {
 		qct, found := tgq.cache.Get("WAITING-MESSAGE#"+strconv.FormatInt(update.Message.Chat.ID, 10))
 		if found {
 			qc := qct.(QuestionConfig)
-			qc.Update = update
 			isTheMessage := false
 			if (update.Message.Chat.Type == "private") {
 				isTheMessage = true
@@ -86,6 +85,7 @@ func (tgq *TGQ) Update(update tgbotapi.Update) bool {
                                                 TextTrue: qc.DoubleCheckButtonYes,
                                                 CallbackTrue: func() {
 							qc.Result <- update.Message.Text
+							qc.Update <- update
 							tgq.cache.Del("WAITING-MESSAGE#"+strconv.FormatInt(update.Message.Chat.ID, 10))
 							qc.Callback()
 							returnBool = true
@@ -100,6 +100,7 @@ func (tgq *TGQ) Update(update tgbotapi.Update) bool {
 					}
 				} else {
 					qc.Result <- update.Message.Text
+					qc.Update <- update
 					tgq.cache.Del("WAITING-MESSAGE#"+strconv.FormatInt(update.Message.Chat.ID, 10))
 					qc.Callback()
 					return true
